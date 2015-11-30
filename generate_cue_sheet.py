@@ -17,15 +17,20 @@ def track_entry(t):
 
 def get_tracks_text(yt_url):
     video_info = pafy.new(yt_url)
-    tracks = re.findall(u'^(\d\d):(\d\d):(\d\d)\s+(.+)\s+(?:-|–)\s+(.+)$', video_info.description, re.MULTILINE)
+    tracks = re.findall(u'^((?:\d\d:){1,2})(\d\d)\s+(.+)\s+(?:-|–)\s+(.+)$', video_info.description, re.MULTILINE)
 
     # Was every line that begins with a time stamp formatted correctly?
-    if len(tracks) != len(re.findall(u'^(\d\d):(\d\d):(\d\d).+$', video_info.description, re.MULTILINE)):
+    if len(tracks) != len(re.findall(u'^(?:\d\d:){1,2}(\d\d).+$', video_info.description, re.MULTILINE)):
         return None
+
+    if not tracks:
+        print video_info.description.encode('utf-8')
 
     track_entries = []
     for track in tracks:
-        track_entries.append(track_entry(track_descriptor(len(track_entries) + 1, *track)))
+        hours_minutes = [x for x in track[0].split(':') if x != '']
+        hours_minutes = ('00', hours_minutes[0]) if len(hours_minutes) == 1 else tuple(hours_minutes)
+        track_entries.append(track_entry(track_descriptor(len(track_entries) + 1, *(hours_minutes + track[1:]))))
     return '\n'.join(track_entries) if track_entries else None
 
 def get_header_text(mp3):
@@ -45,8 +50,9 @@ with open(sys.argv[1], 'r') as f:
             with open(cue_sheet_path, 'w') as cue:
                 cue.write(cue_sheet_text)
                 success.append(mp3)
-        except:
+        except :
             failure.append(mp3)
+
     print "Succeeded:"
     for s in success:
         print '    ' + os.path.basename(s)
