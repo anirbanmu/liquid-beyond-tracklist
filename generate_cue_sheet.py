@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import sys, os, json, re, pafy, mutagen.easyid3
 from collections import namedtuple
 from mutagen.easyid3 import EasyID3
@@ -11,13 +13,19 @@ def track_entry(t):
     hours = int(t.hours)
     minutes = int(t.minutes) + hours * 60
     seconds = int(t.seconds)
-    return '  TRACK %02d AUDIO\n    TITLE "%s"\n    PERFORMER "%s"\n    INDEX 01 %02d:%02d:00' % (t.index, t.title, t.artist, minutes, seconds)
+    return '  TRACK %02d AUDIO\n    TITLE "%s"\n    PERFORMER "%s"\n    INDEX 01 %02d:%02d:00' % (t.index, t.title.strip(), t.artist, minutes, seconds)
 
 def get_tracks_text(yt_url):
     video_info = pafy.new(yt_url)
+    tracks = re.findall(u'^(\d\d):(\d\d):(\d\d)\s+(.+)\s+(?:-|–)\s+(.+)$', video_info.description, re.MULTILINE)
+
+    # Was every line that begins with a time stamp formatted correctly?
+    if len(tracks) != len(re.findall(u'^(\d\d):(\d\d):(\d\d).+$', video_info.description, re.MULTILINE)):
+        return None
+
     track_entries = []
-    for track_desc in re.findall('^(\d\d):(\d\d):(\d\d)\s+(.+)\s+-\s+(.+)$', video_info.description, re.MULTILINE):
-        track_entries.append(track_entry(track_descriptor(len(track_entries) + 1, *track_desc)))
+    for track in tracks:
+        track_entries.append(track_entry(track_descriptor(len(track_entries) + 1, *track)))
     return '\n'.join(track_entries) if track_entries else None
 
 def get_header_text(mp3):
